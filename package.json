@@ -1,0 +1,15 @@
+{
+  "name": "neon-sheep",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "NEON SHEEP · 羊了个羊（赛博朋克紫 / 闯关制）",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}

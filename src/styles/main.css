@@ -1,0 +1,7 @@
+/* 样式入口：按依赖顺序聚合 */
+@import './tokens.css';
+@import './base.css';
+@import './hud.css';
+@import './board.css';
+@import './tray.css';
+@import './overlay.css';

@@ -1,0 +1,23 @@
+/* ============================================================
+   设计令牌 · 单一取色/尺寸来源
+   调主题色 / 芯片尺寸只改这里
+   ============================================================ */
+:root {
+  /* 色板（紫色系赛博） */
+  --bg: #08021a;
+  --panel: #160a33;
+  --violet: #a855f7;
+  --magenta: #e879f9;
+  --deep-violet: #6d28d9;
+  --cyan: #22d3ee;
+  --danger: #f43f5e;
+  --ink: #f3e8ff;
+  --dim: #a78bfa;
+
+  /* 尺寸（与 src/config.js 的 T 保持一致） */
+  --T: 58px;
+
+  /* 字型 */
+  --font-display: 'Orbitron', sans-serif;
+  --font-mono: 'Share Tech Mono', ui-monospace, monospace;
+}

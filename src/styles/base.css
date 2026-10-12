@@ -1,0 +1,94 @@
+/* 基础层：reset / 页面背景 / 标题 / 布局容器 / 特效层 */
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+
+body {
+  background:
+    radial-gradient(1000px 600px at 20% -10%, rgba(109, 40, 217, .35), transparent 60%),
+    radial-gradient(900px 500px at 90% 110%, rgba(217, 70, 239, .18), transparent 60%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ===== 背景特效层 ===== */
+.grid-floor {
+  position: fixed; inset: auto 0 0 0; height: 52vh; pointer-events: none; z-index: 0;
+  background:
+    linear-gradient(rgba(168, 85, 247, .22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(168, 85, 247, .22) 1px, transparent 1px);
+  background-size: 44px 44px;
+  transform: perspective(420px) rotateX(58deg);
+  transform-origin: top center;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 45%);
+          mask-image: linear-gradient(to bottom, transparent, #000 45%);
+  animation: grid-scroll 7s linear infinite;
+}
+@keyframes grid-scroll { to { background-position: 0 44px, 0 0; } }
+
+.scanlines {
+  position: fixed; inset: 0; pointer-events: none; z-index: 60;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .14) 0 1px, transparent 1px 3px);
+  mix-blend-mode: overlay;
+}
+.vignette {
+  position: fixed; inset: 0; pointer-events: none; z-index: 59;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(2, 0, 12, .55));
+}
+
+/* ===== 主布局 ===== */
+#app {
+  position: relative; z-index: 1; max-width: 560px;
+  margin: 0 auto; padding: 20px 14px 30px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+header { text-align: center; }
+
+h1.glitch {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: 34px; letter-spacing: .14em;
+  color: #fff; position: relative;
+  text-shadow: 0 0 14px rgba(168, 85, 247, .9), 0 0 40px rgba(217, 70, 239, .45);
+  animation: flicker 6s infinite;
+}
+h1.glitch::before, h1.glitch::after {
+  content: attr(data-text); position: absolute; inset: 0; width: 100%; overflow: hidden;
+}
+h1.glitch::before {
+  color: var(--magenta); transform: translate(-2px, 0);
+  clip-path: inset(12% 0 58% 0);
+  animation: glitch-a 3.2s infinite steps(2, end);
+}
+h1.glitch::after {
+  color: var(--cyan); transform: translate(2px, 0);
+  clip-path: inset(62% 0 8% 0);
+  animation: glitch-b 2.7s infinite steps(2, end);
+}
+@keyframes glitch-a { 0%, 92%, 100% { opacity: 0; } 93%, 96% { opacity: .85; } }
+@keyframes glitch-b { 0%, 90%, 100% { opacity: 0; } 91%, 94% { opacity: .7; } }
+@keyframes flicker {
+  0%, 100% { opacity: 1; } 93% { opacity: 1; } 94% { opacity: .75; }
+  95% { opacity: 1; } 97% { opacity: .85; } 98% { opacity: 1; }
+}
+
+.subtitle {
+  margin-top: 4px; font-size: 12px;
+  letter-spacing: .4em; color: var(--dim); text-transform: uppercase;
+}
+
+.hint { text-align: center; font-size: 11.5px; letter-spacing: .15em; color: rgba(167, 139, 250, .65); }
+
+/* 无障碍：尊重系统“减弱动态效果”偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .grid-floor { animation: none; }
+}

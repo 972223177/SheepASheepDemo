@@ -1,0 +1,52 @@
+/* 牌区：芯片态（可点 / 覆盖 / 飞行 / 抖动 / 消除） */
+
+#board-wrap { position: relative; width: 100%; display: flex; justify-content: center; }
+#board { position: relative; transform-origin: top center; }
+
+.tile {
+  position: absolute; width: var(--T); height: var(--T); border-radius: 10px;
+  display: grid; place-items: center; font-size: 27px;
+  cursor: pointer; user-select: none;
+  background: linear-gradient(155deg, #3b1a6e 0%, #241045 55%, #180a33 100%);
+  border: 1px solid rgba(196, 132, 252, .85);
+  box-shadow:
+    0 0 10px rgba(168, 85, 247, .4),
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    inset 0 -6px 12px rgba(0, 0, 0, .35);
+  transition: filter .2s, box-shadow .2s;
+}
+.tile::after {
+  content: ''; position: absolute; top: 4px; left: 4px;
+  width: 12px; height: 12px; border-radius: 3px;
+  border-top: 2px solid rgba(232, 121, 249, .8);
+  border-left: 2px solid rgba(232, 121, 249, .8);
+}
+
+.tile.free:hover,
+.tile:not(.covered):not(.in-tray):hover {
+  filter: brightness(1.25);
+  box-shadow: 0 0 18px rgba(232, 121, 249, .85), inset 0 1px 0 rgba(255, 255, 255, .2);
+}
+.tile.covered { filter: brightness(.42) saturate(.55); cursor: default; }
+.tile.in-tray { position: static; cursor: default; }
+
+.tile.shake { animation: shake .3s; }
+@keyframes shake {
+  0%, 100% { translate: 0 0; } 25% { translate: -5px 0; }
+  50% { translate: 5px 0; } 75% { translate: -3px 0; }
+}
+
+.tile.pop { animation: pop .3s forwards; }
+@keyframes pop {
+  40% { transform: scale(1.28); filter: brightness(2); }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+/* 阻挡提示：点被覆盖芯片时，高亮压住它的上层芯片 */
+.tile.blocker-flash { animation: blocker-flash .55s; }
+@keyframes blocker-flash {
+  40% {
+    box-shadow: 0 0 22px rgba(244, 63, 94, .95), inset 0 0 12px rgba(244, 63, 94, .5);
+    border-color: rgba(244, 63, 94, .95);
+  }
+}

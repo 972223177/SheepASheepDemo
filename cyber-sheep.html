@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEON SHEEP · 羊了个羊</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#08021a;
+    --panel:#160a33;
+    --violet:#a855f7;
+    --magenta:#e879f9;
+    --deep-violet:#6d28d9;
+    --ink:#f3e8ff;
+    --dim:#a78bfa;
+    --T:58px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1000px 600px at 20% -10%, rgba(109,40,217,.35), transparent 60%),
+      radial-gradient(900px 500px at 90% 110%, rgba(217,70,239,.18), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Share Tech Mono', ui-monospace, monospace;
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+  /* ===== 背景层：透视网格 + 扫描线 ===== */
+  .grid-floor{
+    position:fixed;inset:auto 0 0 0;height:52vh;pointer-events:none;z-index:0;
+    background:
+      linear-gradient(rgba(168,85,247,.22) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(168,85,247,.22) 1px, transparent 1px);
+    background-size:44px 44px;
+    transform:perspective(420px) rotateX(58deg);
+    transform-origin:top center;
+    -webkit-mask-image:linear-gradient(to bottom, transparent, #000 45%);
+            mask-image:linear-gradient(to bottom, transparent, #000 45%);
+    animation:gridScroll 7s linear infinite;
+  }
+  @keyframes gridScroll{to{background-position:0 44px, 0 0}}
+  .scanlines{
+    position:fixed;inset:0;pointer-events:none;z-index:60;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.14) 0 1px, transparent 1px 3px);
+    mix-blend-mode:overlay;
+  }
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:59;
+    background:radial-gradient(ellipse at center, transparent 55%, rgba(2,0,12,.55));}
+
+  /* ===== 主布局 ===== */
+  #app{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:20px 14px 30px;display:flex;flex-direction:column;gap:14px}
+  header{text-align:center}
+  h1.glitch{
+    font-family:'Orbitron', sans-serif;font-weight:900;font-size:34px;letter-spacing:.14em;
+    color:#fff;position:relative;text-shadow:0 0 14px rgba(168,85,247,.9), 0 0 40px rgba(217,70,239,.45);
+    animation:flicker 6s infinite;
+  }
+  h1.glitch::before,h1.glitch::after{
+    content:attr(data-text);position:absolute;inset:0;width:100%;overflow:hidden;
+  }
+  h1.glitch::before{color:var(--magenta);transform:translate(-2px,0);clip-path:inset(12% 0 58% 0);animation:glA 3.2s infinite steps(2,end)}
+  h1.glitch::after{color:#22d3ee;transform:translate(2px,0);clip-path:inset(62% 0 8% 0);animation:glB 2.7s infinite steps(2,end)}
+  @keyframes glA{0%,92%,100%{opacity:0}93%,96%{opacity:.85}}
+  @keyframes glB{0%,90%,100%{opacity:0}91%,94%{opacity:.7}}
+  @keyframes flicker{0%,100%{opacity:1}93%{opacity:1}94%{opacity:.75}95%{opacity:1}97%{opacity:.85}98%{opacity:1}}
+  .subtitle{margin-top:4px;font-size:12px;letter-spacing:.4em;color:var(--dim);text-transform:uppercase}
+
+  /* ===== HUD ===== */
+  #hud{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
+    background:linear-gradient(180deg, rgba(42,18,80,.75), rgba(21,10,46,.75));
+    border:1px solid rgba(168,85,247,.4);border-radius:12px;padding:10px 12px;
+    box-shadow:0 0 18px rgba(124,58,237,.25), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+  .stat{font-size:12px;letter-spacing:.12em;color:var(--dim);display:flex;gap:6px;align-items:baseline}
+  .stat b{font-family:'Orbitron';font-size:16px;color:#fff;text-shadow:0 0 8px var(--violet)}
+  .tool{
+    font-family:'Share Tech Mono';font-size:12px;letter-spacing:.08em;cursor:pointer;
+    color:var(--ink);background:rgba(109,40,217,.22);
+    border:1px solid rgba(168,85,247,.55);border-radius:8px;padding:6px 10px;
+    transition:.15s;
+  }
+  .tool i{font-style:normal;color:var(--magenta);margin-left:2px}
+  .tool:hover:not(:disabled){background:rgba(168,85,247,.4);box-shadow:0 0 12px rgba(168,85,247,.6)}
+  .tool:disabled{opacity:.35;cursor:not-allowed}
+  .tool.danger{border-color:rgba(244,63,94,.5)}
+
+  /* ===== 牌区 ===== */
+  #boardWrap{position:relative;width:100%;display:flex;justify-content:center}
+  #board{position:relative;transform-origin:top center}
+  .tile{
+    position:absolute;width:var(--T);height:var(--T);border-radius:10px;
+    display:grid;place-items:center;font-size:27px;cursor:pointer;user-select:none;
+    background:linear-gradient(155deg, #3b1a6e 0%, #241045 55%, #180a33 100%);
+    border:1px solid rgba(196,132,252,.85);
+    box-shadow:0 0 10px rgba(168,85,247,.4), inset 0 1px 0 rgba(255,255,255,.16), inset 0 -6px 12px rgba(0,0,0,.35);
+    transition:filter .2s, box-shadow .2s;
+  }
+  .tile::after{ /* 左上霓虹高光角标 */
+    content:'';position:absolute;top:4px;left:4px;width:12px;height:12px;border-radius:3px;
+    border-top:2px solid rgba(232,121,249,.8);border-left:2px solid rgba(232,121,249,.8);
+  }
+  .tile.free:hover{filter:brightness(1.25);box-shadow:0 0 18px rgba(232,121,249,.85), inset 0 1px 0 rgba(255,255,255,.2)}
+  .tile.covered{filter:brightness(.42) saturate(.55);cursor:default}
+  .tile.in-tray{position:static;cursor:default}
+  .tile.shake{animation:shake .3s}
+  @keyframes shake{0%,100%{translate:0 0}25%{translate:-5px 0}50%{translate:5px 0}75%{translate:-3px 0}}
+  .tile.pop{animation:pop .3s forwards}
+  @keyframes pop{40%{transform:scale(1.28);filter:brightness(2)}100%{transform:scale(0);opacity:0}}
+
+  /* ===== 卡槽 ===== */
+  #tray{
+    display:flex;gap:6px;justify-content:center;padding:10px;
+    background:linear-gradient(180deg, rgba(21,10,46,.9), rgba(12,5,28,.9));
+    border:1px solid rgba(168,85,247,.45);border-radius:14px;
+    box-shadow:0 0 22px rgba(124,58,237,.3), inset 0 0 24px rgba(109,40,217,.15);
+  }
+  .slot{
+    width:calc(var(--T) + 4px);height:calc(var(--T) + 4px);border-radius:10px;
+    border:1px dashed rgba(168,85,247,.35);display:grid;place-items:center;
+    background:rgba(109,40,217,.08);
+  }
+  .slot.lit{border-style:solid;border-color:rgba(232,121,249,.7);box-shadow:inset 0 0 10px rgba(232,121,249,.25)}
+  .hint{text-align:center;font-size:11.5px;letter-spacing:.15em;color:rgba(167,139,250,.65)}
+
+  /* ===== 覆盖层（开始 / 通关 / 失败） ===== */
+  #overlay{
+    position:fixed;inset:0;z-index:70;display:grid;place-items:center;
+    background:rgba(5,0,18,.82);backdrop-filter:blur(6px);
+  }
+  #overlay.hidden{display:none}
+  .panel{
+    width:min(92vw, 460px);text-align:center;padding:34px 26px;border-radius:16px;
+    background:linear-gradient(170deg, rgba(42,18,80,.95), rgba(18,8,40,.95));
+    border:1px solid rgba(168,85,247,.6);
+    box-shadow:0 0 40px rgba(124,58,237,.45), inset 0 1px 0 rgba(255,255,255,.08);
+    animation:panelIn .35s cubic-bezier(.2,.9,.3,1.15);
+  }
+  @keyframes panelIn{from{transform:scale(.85);opacity:0}}
+  .panel h2{font-family:'Orbitron';font-size:24px;letter-spacing:.18em;margin-bottom:6px;
+    text-shadow:0 0 16px var(--violet)}
+  .panel h2.win{color:#fff;text-shadow:0 0 16px var(--magenta), 0 0 40px var(--magenta)}
+  .panel h2.lose{color:#fda4af;text-shadow:0 0 16px rgba(244,63,94,.8)}
+  .panel p{font-size:13px;color:var(--dim);letter-spacing:.1em;margin-bottom:20px;line-height:1.9}
+  .level-grid{display:flex;flex-direction:column;gap:10px;margin:18px 0 22px}
+  .lv-btn{
+    font-family:'Share Tech Mono';font-size:14px;letter-spacing:.12em;cursor:pointer;
+    display:flex;justify-content:space-between;align-items:center;
+    color:var(--ink);background:rgba(109,40,217,.18);
+    border:1px solid rgba(168,85,247,.5);border-radius:10px;padding:12px 16px;transition:.15s;
+  }
+  .lv-btn:hover:not(.locked){background:rgba(168,85,247,.38);box-shadow:0 0 14px rgba(168,85,247,.6);transform:translateX(4px)}
+  .lv-btn.locked{opacity:.35;cursor:not-allowed}
+  .lv-btn .tag{font-family:'Orbitron';font-size:12px;color:var(--magenta)}
+  .cta{
+    font-family:'Orbitron';font-size:14px;letter-spacing:.2em;cursor:pointer;
+    color:#fff;background:linear-gradient(135deg, var(--deep-violet), var(--magenta));
+    border:none;border-radius:10px;padding:13px 34px;
+    box-shadow:0 0 20px rgba(217,70,239,.5);transition:.15s;
+  }
+  .cta:hover{box-shadow:0 0 32px rgba(217,70,239,.9);transform:translateY(-2px)}
+  .cta.ghost{background:transparent;border:1px solid rgba(168,85,247,.6);box-shadow:none;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="grid-floor"></div>
+<div class="vignette"></div>
+<div class="scanlines"></div>
+
+<main id="app">
+  <header>
+    <h1 class="glitch" data-text="NEON SHEEP">NEON SHEEP</h1>
+    <div class="subtitle">羊了个羊 · CYBER PROTOCOL</div>
+  </header>
+
+  <section id="hud">
+    <div class="stat">LV <b id="hudLevel">1</b></div>
+    <div class="stat">SCORE <b id="hudScore">0</b></div>
+    <div class="stat">剩余 <b id="hudLeft">0</b></div>
+    <button id="btnShuffle" class="tool">⟳ 洗牌 <i>×2</i></button>
+    <button id="btnUndo" class="tool">↩ 撤销 <i>×3</i></button>
+    <button id="btnRestart" class="tool danger">■ 重开</button>
+  </section>
+
+  <div id="boardWrap"><div id="board"></div></div>
+
+  <div id="tray"></div>
+
+  <footer class="hint">点未被覆盖的芯片 · 凑齐 3 枚同款即消除 · 7 格卡槽填满则系统崩溃</footer>
+</main>
+
+<div id="overlay"><div class="panel" id="panel"></div></div>
+
+<script>
+/* ============================================================
+   NEON SHEEP · 羊了个羊（赛博朋克紫 / 闯关制）
+   约定：T=58px，跨层半格错位堆叠 → 上下层芯片相互覆盖；
+   被覆盖的芯片不可点；凑 3 同款消除；卡槽 7 格满即败。
+   ============================================================ */
+const T = 58;
+const EPS = 12;                 // 覆盖判定余量（仅压角不算覆盖）
+const ICONS = ['🐑','🔋','🛸','📡','💾','🧬','⚡','🍄','🎮','🪩','💎','🌵'];
+
+const LEVELS = [
+  { name:'觉醒协议',   types:3, layers:2, cols:5, rows:4, k:3 },
+  { name:'霓虹街区',   types:4, layers:3, cols:6, rows:4, k:3 },
+  { name:'数据高塔',   types:5, layers:4, cols:6, rows:5, k:3 },
+  { name:'电子牧场',   types:6, layers:5, cols:7, rows:5, k:3 },
+  { name:'终局密钥',   types:7, layers:6, cols:7, rows:6, k:3 },
+];
+
+const $ = s => document.querySelector(s);
+const boardEl = $('#board'), boardWrap = $('#boardWrap'), trayEl = $('#tray');
+const overlay = $('#overlay'), panel = $('#panel');
+
+const state = {
+  levelIdx: 0, tiles: [], tray: [], undoStack: [],
+  scale: 1, boardW: 0, boardH: 0, lock: false,
+  score: 0, shuffleLeft: 2, undoLeft: 3,
+};
+
+/* ---------- 音效（WebAudio 轻量合成） ---------- */
+let AC = null;
+function beep(freq, dur, type='square', gain=.045, delay=0){
+  try{
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = AC.currentTime + delay;
+    const o = AC.createOscillator(), v = AC.createGain();
+    o.type = type; o.frequency.value = freq;
+    v.gain.setValueAtTime(gain, t0);
+    v.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+    o.connect(v); v.connect(AC.destination);
+    o.start(t0); o.stop(t0 + dur + .02);
+  }catch(e){}
+}
+const sfx = {
+  click : () => beep(720, .07),
+  deny  : () => beep(130, .16, 'sawtooth', .05),
+  match : () => { beep(660,.09); beep(880,.09,'square',.045,.07); beep(1320,.12,'square',.04,.14); },
+  win   : () => [523,659,784,1046].forEach((f,i)=>beep(f,.16,'triangle',.05,i*.11)),
+  lose  : () => { beep(220,.25,'sawtooth',.05); beep(110,.4,'sawtooth',.05,.18); },
+};
+
+/* ---------- 关卡布局生成：逐层缩小 + 逐层漂移 → 相互覆盖 ---------- */
+function genPositions(cfg){
+  const pos = [];
+  for(let l = 0; l < cfg.layers; l++){
+    const cols = Math.max(3, cfg.cols - l);
+    const rows = Math.max(2, cfg.rows - Math.floor(l / 2));
+    const dx = l * 14, dy = l * 18;               // 上层向右下漂移 → 与下层交叠
+    for(let r = 0; r < rows; r++)
+      for(let c = 0; c < cols; c++)
+        pos.push({ layer: l, x: dx + c * T, y: dy + r * T });
+  }
+  return pos;
+}
+
+function buildLevel(idx){
+  const cfg = LEVELS[idx];
+  let positions = genPositions(cfg);
+  const per = cfg.types * 3 * cfg.k;              // 每种类型 3 的倍数枚
+  if(positions.length > per) positions = positions.slice(0, per); // 从顶层裁掉
+
+  // 生成类型池：每种类型恰好 N/types 枚（必为 3 的倍数）
+  const pool = [];
+  for(let t = 0; t < cfg.types; t++)
+    for(let i = 0; i < positions.length / cfg.types; i++) pool.push(t);
+  for(let i = pool.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  const maxX = Math.max(...positions.map(p => p.x)) + T;
+  const maxY = Math.max(...positions.map(p => p.y)) + T;
+  const PAD = 10;
+  state.boardW = maxX + PAD * 2; state.boardH = maxY + PAD * 2;
+
+  boardEl.innerHTML = '';
+  state.tiles = positions.map((p, i) => {
+    const el = document.createElement('div');
+    el.className = 'tile covered';
+    el.textContent = ICONS[pool[i]];
+    el.style.left = (p.x + PAD) + 'px';
+    el.style.top  = (p.y + PAD) + 'px';
+    el.style.zIndex = p.layer;
+    boardEl.appendChild(el);
+    const tile = { id: i, type: pool[i], layer: p.layer, x: p.x + PAD, y: p.y + PAD,
+                   el, onBoard: true, covered: true };
+    el.addEventListener('pointerdown', () => onTileClick(tile));
+    return tile;
+  });
+
+  state.tray = []; state.undoStack = [];
+  state.shuffleLeft = 2; state.undoLeft = 3;
+  trayEl.innerHTML = '';
+  for(let i = 0; i < 7; i++){
+    const s = document.createElement('div');
+    s.className = 'slot'; trayEl.appendChild(s);
+  }
+  refreshCoverage(); updateHUD(); fitBoard();
+}
+
+/* ---------- 覆盖计算 ---------- */
+function overlaps(a, b){
+  return a.x < b.x + T - EPS && a.x + T > b.x + EPS &&
+         a.y < b.y + T - EPS && a.y + T > b.y + EPS;
+}
+function refreshCoverage(){
+  const onBoard = state.tiles.filter(t => t.onBoard);
+  for(const t of onBoard){
+    t.covered = onBoard.some(o => o !== t && o.layer > t.layer && overlaps(t, o));
+    t.el.classList.toggle('covered', t.covered);
+  }
+}
+
+/* ---------- 点击 ---------- */
+function onTileClick(tile){
+  if(state.lock) return;
+  if(!tile.onBoard) return;
+  if(tile.covered){
+    sfx.deny();
+    tile.el.classList.remove('shake'); void tile.el.offsetWidth;
+    tile.el.classList.add('shake');
+    return;
+  }
+  sfx.click();
+  state.undoStack.push(tile);
+  flyToTray(tile);
+}
+
+function flyToTray(tile){
+  tile.onBoard = false;
+  refreshCoverage();               // 修复：芯片离场后立刻重算覆盖，点亮下层
+  const slotEls = trayEl.children;
+  const slotIdx = state.tray.length;
+  state.tray.push(tile);
+
+  const first = tile.el.getBoundingClientRect();
+  tile.el.classList.remove('covered','shake');
+  tile.el.classList.add('in-tray');
+  tile.el.style.zIndex = '';
+  slotEls[slotIdx].classList.add('lit');
+  slotEls[slotIdx].appendChild(tile.el);
+  const last = tile.el.getBoundingClientRect();
+  const dx = (first.left - last.left) / state.scale;
+  const dy = (first.top  - last.top ) / state.scale;
+  tile.el.style.transition = 'none';
+  tile.el.style.transform = `translate(${dx}px,${dy}px) scale(${state.scale})`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    tile.el.style.transition = 'transform .3s cubic-bezier(.2,.9,.3,1.15)';
+    tile.el.style.transform = 'translate(0,0) scale(1)';
+  }));
+
+  setTimeout(() => resolveTray(tile.type), 180);
+}
+
+/* ---------- 消除 / 胜负判定 ---------- */
+function resolveTray(type){
+  const idxs = [];
+  state.tray.forEach((t, i) => { if(t.type === type && idxs.length < 3) idxs.push(i); });
+  if(idxs.length === 3){
+    state.lock = true; sfx.match();
+    idxs.forEach(i => state.tray[i].el.classList.add('pop'));
+    setTimeout(() => {
+      idxs.forEach(i => state.tray[i].el.remove());
+      state.tray = state.tray.filter((_, i) => !idxs.includes(i));
+      state.score += 30;
+      reflowTray(); updateHUD();
+      state.lock = false;
+      checkEnd();
+    }, 300);
+  } else {
+    updateHUD();
+    checkEnd();
+  }
+}
+
+function reflowTray(){
+  const slotEls = trayEl.children;
+  for(let i = 0; i < 7; i++){
+    slotEls[i].classList.toggle('lit', i < state.tray.length);
+    const t = state.tray[i];
+    if(t && t.el.parentElement !== slotEls[i]) slotEls[i].appendChild(t.el);
+  }
+}
+
+function remaining(){ return state.tiles.filter(t => t.onBoard).length + state.tray.length; }
+
+function checkEnd(){
+  if(remaining() === 0){ sfx.win(); showClear(); return; }
+  if(state.tray.length >= 7){ sfx.lose(); showGameOver(); }
+}
+
+/* ---------- 道具 ---------- */
+$('#btnShuffle').addEventListener('click', () => {
+  if(state.shuffleLeft <= 0 || state.lock) return;
+  const onBoard = state.tiles.filter(t => t.onBoard);
+  if(!onBoard.length) return;
+  state.shuffleLeft--; sfx.click();
+  const types = onBoard.map(t => t.type);
+  for(let i = types.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [types[i], types[j]] = [types[j], types[i]];
+  }
+  onBoard.forEach((t, i) => { t.type = types[i]; t.el.textContent = ICONS[t.type]; });
+  updateHUD();
+});
+
+$('#btnUndo').addEventListener('click', () => {
+  if(state.undoLeft <= 0 || state.lock) return;
+  const tile = state.undoStack.pop();
+  if(!tile || !state.tray.includes(tile)) return;
+  state.undoLeft--; sfx.click();
+  state.tray = state.tray.filter(t => t !== tile);
+  tile.onBoard = true;
+  tile.el.classList.remove('in-tray','pop');
+  tile.el.style.transform = ''; tile.el.style.transition = '';
+  tile.el.style.left = tile.x + 'px'; tile.el.style.top = tile.y + 'px';
+  tile.el.style.zIndex = tile.layer;
+  boardEl.appendChild(tile.el);
+  refreshCoverage(); reflowTray(); updateHUD();
+});
+
+$('#btnRestart').addEventListener('click', () => { sfx.click(); buildLevel(state.levelIdx); });
+
+/* ---------- HUD / 缩放 ---------- */
+function updateHUD(){
+  $('#hudLevel').textContent = state.levelIdx + 1;
+  $('#hudScore').textContent = state.score;
+  $('#hudLeft').textContent = remaining();
+  $('#btnShuffle').querySelector('i').textContent = '×' + state.shuffleLeft;
+  $('#btnUndo').querySelector('i').textContent = '×' + state.undoLeft;
+  $('#btnShuffle').disabled = state.shuffleLeft <= 0;
+  $('#btnUndo').disabled = state.undoLeft <= 0;
+}
+function fitBoard(){
+  const avail = boardWrap.clientWidth;
+  state.scale = Math.min(1, avail / state.boardW);
+  boardEl.style.transform = `scale(${state.scale})`;
+  boardEl.style.width = state.boardW + 'px';
+  boardEl.style.height = state.boardH + 'px';
+  boardWrap.style.height = (state.boardH * state.scale) + 'px';
+}
+window.addEventListener('resize', fitBoard);
+
+/* ---------- 覆盖层：开始 / 通关 / 失败 ---------- */
+function unlocked(){ return +(localStorage.getItem('neonSheep.unlocked') || 1); }
+function unlockNext(n){ const t = n + 2; if(t > unlocked()) localStorage.setItem('neonSheep.unlocked', t); }
+
+function showStart(){
+  const u = unlocked();
+  panel.innerHTML = `
+    <h2 class="win">SYSTEM BOOT</h2>
+    <p>赛博牧场数据溢出，芯片层层堆叠。<br>凑齐 3 枚同款芯片即可消除，<br>7 格缓存被填满则系统崩溃。</p>
+    <div class="level-grid">
+      ${LEVELS.map((lv, i) => `
+        <button class="lv-btn ${i >= u ? 'locked' : ''}" data-lv="${i}" ${i >= u ? 'disabled' : ''}>
+          <span>STAGE ${i + 1} · ${lv.name}</span>
+          <span class="tag">${i >= u ? 'LOCKED' : lv.types + ' 类 / ' + lv.layers + ' 层'}</span>
+        </button>`).join('')}
+    </div>`;
+  overlay.classList.remove('hidden');
+  panel.querySelectorAll('.lv-btn:not(.locked)').forEach(b =>
+    b.addEventListener('click', () => { sfx.click(); startLevel(+b.dataset.lv); }));
+}
+
+function showClear(){
+  unlockNext(state.levelIdx);
+  const isLast = state.levelIdx === LEVELS.length - 1;
+  panel.innerHTML = `
+    <h2 class="win">${isLast ? 'ALL CLEAR' : 'STAGE CLEAR'}</h2>
+    <p>${isLast ? '全部协议已破解，你清空了整座赛博牧场。' : '区块已净化，正在接入下一节点…'}<br>SCORE ${state.score}</p>
+    ${isLast
+      ? `<button class="cta" id="ovMenu">返回菜单</button>`
+      : `<button class="cta" id="ovNext">下一关 ▸</button>
+         <button class="cta ghost" id="ovMenu">返回菜单</button>`}`;
+  overlay.classList.remove('hidden');
+  const nx = $('#ovNext');
+  if(nx) nx.addEventListener('click', () => { sfx.click(); startLevel(state.levelIdx + 1); });
+  $('#ovMenu').addEventListener('click', () => { sfx.click(); showStart(); });
+}
+
+function showGameOver(){
+  panel.innerHTML = `
+    <h2 class="lose">BUFFER OVERFLOW</h2>
+    <p>缓存溢出 · 系统崩溃于 STAGE ${state.levelIdx + 1}<br>SCORE ${state.score}</p>
+    <button class="cta" id="ovRetry">重新接入 ▸</button>
+    <button class="cta ghost" id="ovMenu">返回菜单</button>`;
+  overlay.classList.remove('hidden');
+  $('#ovRetry').addEventListener('click', () => { sfx.click(); startLevel(state.levelIdx); });
+  $('#ovMenu').addEventListener('click', () => { sfx.click(); showStart(); });
+}
+
+function startLevel(idx){
+  state.levelIdx = idx;
+  overlay.classList.add('hidden');
+  buildLevel(idx);
+}
+
+/* ---------- 启动 ---------- */
+showStart();
+</script>
+</body>
+</html>

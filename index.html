@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NEON SHEEP · 羊了个羊</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- 背景特效层 -->
+  <div class="grid-floor"></div>
+  <div class="vignette"></div>
+  <div class="scanlines"></div>
+
+  <main id="app">
+    <header>
+      <h1 class="glitch" data-text="NEON SHEEP">NEON SHEEP</h1>
+      <div class="subtitle">羊了个羊 · CYBER PROTOCOL</div>
+    </header>
+
+    <section id="hud">
+      <div class="stat">LV <b id="hud-level">1</b></div>
+      <div class="stat">SCORE <b id="hud-score">0</b></div>
+      <div class="stat">剩余 <b id="hud-left">0</b></div>
+      <button id="btn-shuffle" class="tool">⟳ 洗牌 <i>×2</i></button>
+      <button id="btn-undo" class="tool">↩ 撤销 <i>×3</i></button>
+      <button id="btn-restart" class="tool danger">■ 重开</button>
+      <button id="btn-menu" class="tool">⌂ 菜单</button>
+    </section>
+
+    <div id="board-wrap"><div id="board"></div></div>
+
+    <div id="tray"></div>
+
+    <footer class="hint">点未被覆盖的芯片 · 凑齐 3 枚同款即消除 · 7 格卡槽填满则系统崩溃</footer>
+  </main>
+
+  <div id="overlay"><div class="panel" id="panel"></div></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

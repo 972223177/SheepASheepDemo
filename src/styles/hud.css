@@ -1,0 +1,28 @@
+/* HUD：状态栏 + 道具按钮 */
+
+#hud {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+  background: linear-gradient(180deg, rgba(42, 18, 80, .75), rgba(21, 10, 46, .75));
+  border: 1px solid rgba(168, 85, 247, .4); border-radius: 12px; padding: 10px 12px;
+  box-shadow: 0 0 18px rgba(124, 58, 237, .25), inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+.stat {
+  font-size: 12px; letter-spacing: .12em; color: var(--dim);
+  display: flex; gap: 6px; align-items: baseline;
+}
+.stat b {
+  font-family: var(--font-display); font-size: 16px; color: #fff;
+  text-shadow: 0 0 8px var(--violet);
+}
+
+.tool {
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; cursor: pointer;
+  color: var(--ink); background: rgba(109, 40, 217, .22);
+  border: 1px solid rgba(168, 85, 247, .55); border-radius: 8px; padding: 6px 10px;
+  transition: .15s;
+}
+.tool i { font-style: normal; color: var(--magenta); margin-left: 2px; }
+.tool:hover:not(:disabled) { background: rgba(168, 85, 247, .4); box-shadow: 0 0 12px rgba(168, 85, 247, .6); }
+.tool:disabled { opacity: .35; cursor: not-allowed; }
+.tool.danger { border-color: rgba(244, 63, 94, .5); }
